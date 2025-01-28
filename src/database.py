@@ -154,11 +154,16 @@ class Database:
             logger.info(f"Toplam ürün sayısı: {total}")
             
             # Availability değerlerini kontrol et
-            avail_query = "SELECT DISTINCT availability, COUNT(*) as count FROM products GROUP BY availability ORDER BY availability"
+            avail_query = """
+                SELECT sku, title, availability 
+                FROM products 
+                WHERE availability = '0'
+                LIMIT 5
+            """
             avail_df = pd.read_sql_query(avail_query, self.conn)
-            logger.info("Availability değerleri:")
+            logger.info("Örnek ürünler (stokta 0 olanlar):")
             for _, row in avail_df.iterrows():
-                logger.info(f"  {row['availability']}: {row['count']} ürün")
+                logger.info(f"  SKU: {row['sku']}, Title: {row['title']}, Availability: {row['availability']}")
             
             # Şimdi filtreleri tek tek uygulayarak kaç ürün kaldığını görelim
             filters = [
@@ -166,7 +171,7 @@ class Database:
                 ("title IS NOT NULL", "Başlığı olan"),
                 ("price IS NOT NULL", "Fiyatı olan"),
                 ("image_url IS NOT NULL AND image_url != ''", "Resmi olan"),
-                ("availability::integer > 0", "Stokta olan")  # 0'dan büyük değerler stokta var demek
+                ("availability != '0'", "Stokta olan")  # 0 olmayan değerler stokta var demek
             ]
             
             current_filter = ""
