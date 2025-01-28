@@ -5,8 +5,7 @@ import shutil
 
 def sync_all():
     """
-    Veritabanındaki ürünleri CSV dosyalarına export eder.
-    Her CSV dosyası 1000 ürün içerir.
+    Veritabanındaki ürünleri tek bir CSV dosyasına export eder.
     """
     try:
         logger.info("CSV export işlemi başlatılıyor...")
@@ -20,11 +19,11 @@ def sync_all():
         logger.info(f"{export_dir} klasörü hazırlandı.")
         
         # CSV Export
-        export_to_shopify_csv(batch_size=1000, output_dir='shopify_exports')
+        export_to_shopify_csv(output_dir='shopify_exports')
         
         logger.success("CSV export işlemi tamamlandı!")
-        logger.info("Oluşturulan CSV dosyaları 'shopify_exports' klasöründe bulunabilir.")
-        logger.info("Bu dosyaları Shopify admin panelinden manuel olarak import edebilirsiniz.")
+        logger.info("Oluşturulan CSV dosyası 'shopify_exports' klasöründe bulunabilir.")
+        logger.info("Bu dosyayı Shopify admin panelinden manuel olarak import edebilirsiniz.")
             
     except Exception as e:
         logger.error(f"CSV export hatası: {str(e)}")
