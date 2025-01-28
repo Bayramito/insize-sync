@@ -144,18 +144,48 @@ class Database:
             raise
             
     def get_all_products(self):
-        """Get all products from database with quality filters"""
-        query = """
-        SELECT *
-        FROM products
-        WHERE 1=1
-        AND sku IS NOT NULL AND sku != ''  -- SKU'su olan ürünler
-        AND title IS NOT NULL  -- Başlığı olan ürünler
-        AND price IS NOT NULL  -- Fiyatı olan ürünler
-        AND availability IS NOT NULL  -- Stok durumu belli olan ürünler
-        """
-        logger.info("Fetching filtered products from database...")
-        return pd.read_sql_query(query, self.conn)
+        """Veritabanından filtrelenmiş ürünleri getirir"""
+        try:
+            logger.info("Fetching filtered products from database...")
+            
+            # Önce toplam ürün sayısını kontrol et
+            count_query = "SELECT COUNT(*) as total FROM products"
+            total = pd.read_sql_query(count_query, self.conn).iloc[0]['total']
+            logger.info(f"Toplam ürün sayısı: {total}")
+            
+            # Availability değerlerini kontrol et
+            avail_query = "SELECT DISTINCT availability, COUNT(*) as count FROM products GROUP BY availability ORDER BY availability"
+            avail_df = pd.read_sql_query(avail_query, self.conn)
+            logger.info("Availability değerleri:")
+            for _, row in avail_df.iterrows():
+                logger.info(f"  {row['availability']}: {row['count']} ürün")
+            
+            # Şimdi filtreleri tek tek uygulayarak kaç ürün kaldığını görelim
+            filters = [
+                ("sku IS NOT NULL AND sku != ''", "SKU'su olan"),
+                ("title IS NOT NULL", "Başlığı olan"),
+                ("price IS NOT NULL", "Fiyatı olan"),
+                ("image_url IS NOT NULL AND image_url != ''", "Resmi olan"),
+                ("availability::integer > 0", "Stokta olan")  # 0'dan büyük değerler stokta var demek
+            ]
+            
+            current_filter = ""
+            for condition, description in filters:
+                current_filter += f" AND {condition}" if current_filter else f"WHERE {condition}"
+                check_query = f"SELECT COUNT(*) as filtered FROM products {current_filter}"
+                filtered = pd.read_sql_query(check_query, self.conn).iloc[0]['filtered']
+                logger.info(f"{description} ürün sayısı: {filtered}")
+            
+            # Son olarak tüm filtrelerle ürünleri getir
+            query = f"""
+                SELECT * FROM products 
+                {current_filter}
+                ORDER BY sku
+            """
+            return pd.read_sql_query(query, self.conn)
+        except Exception as e:
+            logger.error(f"Error fetching products: {str(e)}")
+            raise
 
     def get_modified_products(self, last_sync: datetime):
         """Get products modified since last sync with quality filters"""
